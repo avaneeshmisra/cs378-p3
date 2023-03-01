@@ -1,59 +1,82 @@
 import React, { useState, useEffect } from 'react';
-import './App.css';
 
 function App() {
-  const [commodity, setCommodity] = useState('WHEAT');
-  const [price, setPrice] = useState(null);
+  const [data, setData] = useState([]);
   const [error, setError] = useState(null);
+  const [resource, setResource] = useState('people');
+  const [inputValue, setInputValue] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch(`https://commodities-api.com/api/latest?access_key=rvf3vmik5goucyb1i5rcussj9emu4i6l07mwk019j2w1yv46xtq0uuem6mfg`);
+        const response = await fetch(`https://swapi.dev/api/${resource}/`);
         const json = await response.json();
-        setPrice(json.rates[commodity]);
+        setData(json.results.map(item => item.name));
       } catch (error) {
         setError(error.message);
       }
     };
 
     fetchData();
-  }, [commodity]);
+  }, [resource]);
 
-  const handleButtonClick = (e) => {
-    const newCommodity = e.target.innerText;
-    setCommodity(newCommodity);
+  const handleInputChange = event => {
+    setInputValue(event.target.value);
   };
 
-  const handleInputChange = (e) => {
-    const newCommodity = e.target.value;
-    setCommodity(newCommodity.toUpperCase());
+  const handleButtonClick = resource => {
+    setResource(resource);
+    setInputValue('');
+  };
+
+  const handleSearch = async () => {
+    if (!inputValue) return;
+    if (isNaN(inputValue)) {
+      setError('Error: Please enter a valid integer');
+      return;
+    }
+    try {
+      const response = await fetch(`https://swapi.dev/api/${resource}/${inputValue}`);
+      const json = await response.json();
+      setData([json.name]);
+    } catch (error) {
+      setError(`Could not find ${resource} with id ${inputValue}`);
+    }
+  };
+
+  const handleKeyPress = event => {
+    if (event.key === 'Enter') {
+      handleSearch();
+    }
   };
 
   return (
     <div className="App">
-      <header className="App-header">
-        <h1>Commodities API Demo</h1>
-        <div>
-          <button onClick={handleButtonClick}>WHEAT</button>
-          <button onClick={handleButtonClick}>SUGAR</button>
-          <button onClick={handleButtonClick}>COFFEE</button>
-        </div>
-        <div>
-          <label>Enter a commodity name:</label>
-          <input type="text" onChange={handleInputChange} />
-          <p>Try these: https://commodities-api.com/symbols</p>
-        </div>
-        {error ? (
-          <p>{error}</p>
-        ) : price !== null ? (
-          <p>
-            {commodity}: {price}
-          </p>
-        ) : (
-          <p>Loading...</p>
+      <h1>Star Wars API</h1>
+      <div>
+        <button onClick={() => handleButtonClick('people')}>People</button>
+        <button onClick={() => handleButtonClick('planets')}>Planets</button>
+        <button onClick={() => handleButtonClick('starships')}>Starships</button>
+        {resource === 'people' && (
+          <input
+            type="text"
+            value={inputValue}
+            onChange={handleInputChange}
+            onKeyPress={handleKeyPress}
+            placeholder="Enter a number"
+          />
         )}
-      </header>
+        <button onClick={handleSearch}>Search</button>
+      </div>
+      {error ? (
+        <p>{error}</p>
+      ) : (
+        <ul>
+          {data.map((item, index) => (
+            <li key={index}>{item}</li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
